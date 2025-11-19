@@ -3,7 +3,7 @@
  */
 process run_permutation {
     tag "${qtl_subset} - ${batch_index}/${params.n_batches}"
-    container = 'quay.io/eqtlcatalogue/qtltools:v22.03.1'
+    container 'quay.io/eqtlcatalogue/qtltools:v22.03.1'
 
     input:
     each batch_index
@@ -14,7 +14,7 @@ process run_permutation {
 
     script:
     """
-    QTLtools cis --vcf $vcf --bed $bed --cov $covariate --chunk $batch_index ${params.n_batches} --out ${qtl_subset}.permutation.batch.${batch_index}.${params.n_batches}.txt --window ${params.cis_window} --permute ${params.n_permutations} --grp-best
+    QTLtools cis --vcf ${vcf} --bed ${bed} --cov ${covariate} --chunk ${batch_index} ${params.n_batches} --out ${qtl_subset}.permutation.batch.${batch_index}.${params.n_batches}.txt --window ${params.cis_window} --permute ${params.n_permutations} --grp-best
     """
 }
 
@@ -23,7 +23,7 @@ process run_permutation {
  */
 process merge_permutation_batches {
     tag "${qtl_subset}"
-    container = 'quay.io/eqtlcatalogue/qtlmap:v20.05.1'
+    container 'quay.io/eqtlcatalogue/qtlmap:v20.05.1'
 
     input:
     tuple val(qtl_subset), file(batch_file_names)
@@ -41,7 +41,7 @@ process merge_permutation_batches {
 process convert_merged_permutation_txt_to_pq {
     tag "${qtl_subset}"
     publishDir "${params.outdir}/sumstats/${qtl_subset}", mode: 'copy'
-    container = 'quay.io/kfkf33/duckdb_env:v24.01.1'
+    container 'quay.io/kfkf33/duckdb_env:v24.01.1'
 
     input:
     tuple val(qtl_subset), path(input_file)
@@ -51,8 +51,8 @@ process convert_merged_permutation_txt_to_pq {
 
     script:
     """
-    $baseDir/bin/convert_txt_to_pq.py \
-        -i $input_file \
+    ${baseDir}/bin/convert_txt_to_pq.py \
+        -i ${input_file} \
         -m ${task.memory.toMega() / 1024} \
         -c molecular_trait_object_id,molecular_trait_id,n_traits,n_variants,variant,chromosome,position,pvalue,beta,p_perm,p_beta \
         -s '{"molecular_trait_object_id":"VARCHAR","molecular_trait_id":"VARCHAR","n_traits":"INTEGER","n_variants":"INTEGER","variant":"VARCHAR","chromosome":"VARCHAR","position":"INTEGER","pvalue":"DOUBLE","beta":"DOUBLE","p_perm":"DOUBLE","p_beta":"DOUBLE"}' \
@@ -65,8 +65,8 @@ process convert_merged_permutation_txt_to_pq {
  */
 process run_nominal {
     tag "${qtl_subset} - ${batch_index}/${params.n_batches}"
-    container = 'quay.io/eqtlcatalogue/qtlmap:v20.05.1'
-    
+    container 'quay.io/eqtlcatalogue/qtlmap:v20.05.1'
+
     input:
     each batch_index
     tuple val(qtl_subset), file(bed), file(bed_index), file(fastqtl_bed), file(fastqtl_bed_index), file(vcf), file(vcf_index), file(covariate)
@@ -76,8 +76,8 @@ process run_nominal {
 
     script:
     """
-	fastQTL --vcf $vcf --bed $fastqtl_bed --cov $covariate \\
-        --chunk $batch_index ${params.n_batches} \\
+	fastQTL --vcf ${vcf} --bed ${fastqtl_bed} --cov ${covariate} \\
+        --chunk ${batch_index} ${params.n_batches} \\
         --out ${qtl_subset}.nominal.batch.${batch_index}.${params.n_batches}.txt \\
         --window ${params.cis_window} \\
         --ma-sample-threshold 1

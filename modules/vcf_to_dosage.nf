@@ -1,5 +1,5 @@
-process vcf_to_dosage{
-    container = 'quay.io/eqtlcatalogue/susie-finemapping:v20.08.1'
+process vcf_to_dosage {
+    container 'quay.io/eqtlcatalogue/susie-finemapping:v20.08.1'
 
     input:
     tuple val(qtl_subset), file(vcf)
@@ -8,7 +8,7 @@ process vcf_to_dosage{
     tuple val(qtl_subset), file("${vcf.simpleName}.dose.tsv.gz"), file("${vcf.simpleName}.dose.tsv.gz.tbi")
 
     script:
-    if(params.vcf_genotype_field == 'DS'){
+    if (params.vcf_genotype_field == 'DS') {
         """
         #Extract header
         printf 'CHROM\\nPOS\\nREF\\nALT\\n' > 4_columns.tsv
@@ -21,7 +21,8 @@ process vcf_to_dosage{
         zcat header_row.tsv.gz dose_matrix.tsv.gz | bgzip > ${vcf.simpleName}.dose.tsv.gz
         tabix -s1 -b2 -e2 -S1 ${vcf.simpleName}.dose.tsv.gz
         """
-    } else if (params.vcf_genotype_field == 'GT'){
+    }
+    else if (params.vcf_genotype_field == 'GT') {
         """
         #Extract header
         printf 'CHROM\\nPOS\\nREF\\nALT\\n' > 4_columns.tsv
@@ -34,5 +35,5 @@ process vcf_to_dosage{
         zcat header_row.tsv.gz dose_matrix.tsv.gz | bgzip > ${vcf.simpleName}.dose.tsv.gz
         tabix -s1 -b2 -e2 -S1 ${vcf.simpleName}.dose.tsv.gz
         """
-    } 
+    }
 }

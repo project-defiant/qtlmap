@@ -1,5 +1,5 @@
-process run_susie{
-    container = 'quay.io/kfkf33/susier:v24.01.1'
+process run_susie {
+    container 'quay.io/kfkf33/susier:v24.01.1'
     publishDir "${params.outdir}/susie_batches/${qtl_subset}/cs/", mode: 'copy', pattern: "${qtl_subset}.${batch_index}_${params.n_batches}.parquet"
     publishDir "${params.outdir}/susie_batches/${qtl_subset}/lbf/", mode: 'copy', pattern: "${qtl_subset}.${batch_index}_${params.n_batches}.lbf_variable.parquet"
     publishDir "${params.outdir}/susie_batches/${qtl_subset}/full/", mode: 'copy', pattern: "${qtl_subset}.${batch_index}_${params.n_batches}.full_susie.parquet"
@@ -9,13 +9,13 @@ process run_susie{
     each batch_index
 
     output:
-    tuple val(qtl_subset), path("${qtl_subset}.${batch_index}_${params.n_batches}.parquet"), emit: in_cs_variant_batch 
+    tuple val(qtl_subset), path("${qtl_subset}.${batch_index}_${params.n_batches}.parquet"), emit: in_cs_variant_batch
     tuple val(qtl_subset), path("${qtl_subset}.${batch_index}_${params.n_batches}.lbf_variable.parquet"), emit: lbf_variable_batch
     tuple val(qtl_subset), path("${qtl_subset}.${batch_index}_${params.n_batches}.full_susie.parquet"), emit: full_susie_batch
 
     script:
     """
-    Rscript $baseDir/bin/run_susie.R --expression_matrix ${expression_matrix}\
+    Rscript ${baseDir}/bin/run_susie.R --expression_matrix ${expression_matrix}\
      --phenotype_meta ${phenotype_meta}\
      --sample_meta ${sample_meta}\
      --phenotype_list ${phenotype_list}\
@@ -33,12 +33,11 @@ process run_susie{
 
 process concatenate_pqs_wo_sorting {
     tag "${qtl_subset}"
-    container = 'quay.io/kfkf33/duckdb_env:v24.01.1'
-
+    container 'quay.io/kfkf33/duckdb_env:v24.01.1'
 
     input:
     tuple val(qtl_subset), val(files)
-    val(output_postfix)
+    val output_postfix
 
     output:
     tuple val(qtl_subset), val(output_postfix), path("${qtl_subset}_${output_postfix}.parquet")
@@ -51,11 +50,11 @@ process concatenate_pqs_wo_sorting {
 
 process sort_pq_file {
     tag "${qtl_subset}"
-    container = 'quay.io/kfkf33/duckdb_env:v24.01.1'
+    container 'quay.io/kfkf33/duckdb_env:v24.01.1'
     publishDir "${params.outdir}/susie/${qtl_subset}/", mode: 'copy', pattern: "${qtl_subset}.${output_postfix}.parquet"
 
     input:
-    tuple val(qtl_subset),val(output_postfix), path(pq_file)
+    tuple val(qtl_subset), val(output_postfix), path(pq_file)
 
     output:
     tuple val(qtl_subset), path("${qtl_subset}.${output_postfix}.parquet")
@@ -68,15 +67,13 @@ process sort_pq_file {
 
 process concatenate_pq_files {
     tag "${qtl_subset}"
-    container = 'quay.io/kfkf33/duckdb_env:v24.01.1'
+    container 'quay.io/kfkf33/duckdb_env:v24.01.1'
     publishDir "${params.outdir}/susie/${qtl_subset}/", mode: 'copy', pattern: "*credible_sets.parquet"
     publishDir "${params.outdir}/sumstats/${qtl_subset}/", mode: 'copy', pattern: "*cc.parquet"
 
-
-
     input:
     tuple val(qtl_subset), val(files)
-    val(output_postfix)
+    val output_postfix
 
     output:
     tuple val(qtl_subset), path("${qtl_subset}.${output_postfix}.parquet")
@@ -87,12 +84,12 @@ process concatenate_pq_files {
     """
 }
 
-process merge_cs_sumstats{
+process merge_cs_sumstats {
     tag "${qtl_subset}"
-    container = 'quay.io/kfkf33/duckdb_env:v24.01.1'
+    container 'quay.io/kfkf33/duckdb_env:v24.01.1'
 
     input:
-    tuple val(qtl_subset), path(sumstat_batch), val(chrom), val(start_pos), val(end_pos),path(merged_susie_file)
+    tuple val(qtl_subset), path(sumstat_batch), val(chrom), val(start_pos), val(end_pos), path(merged_susie_file)
 
     output:
     tuple val(qtl_subset), path("merged_cs_sumstat_${qtl_subset}_${chrom}_${start_pos}_${end_pos}.parquet")
