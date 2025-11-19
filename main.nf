@@ -75,130 +75,7 @@ def helpMessage() {
  * SET UP CONFIGURATION VARIABLES
  */
 
-// Show help emssage
-if (params.help){
-    helpMessage()
-    exit 0
-}
 
-// Has the run name been specified by the user?
-//  this has the bonus effect of catching both -name and --name
-custom_runName = params.name
-if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
-  custom_runName = workflow.runName
-}
-
-if( workflow.profile == 'awsbatch') {
-  // AWSBatch sanity checking
-  if (!params.awsqueue || !params.awsregion) exit 1, "Specify correct --awsqueue and --awsregion parameters on AWSBatch!"
-  if (!workflow.workDir.startsWith('s3') || !params.outdir.startsWith('s3')) exit 1, "Specify S3 URLs for workDir and outdir parameters on AWSBatch!"
-  // Check workDir/outdir paths to be S3 buckets if running on AWSBatch
-  // related: https://github.com/nextflow-io/nextflow/issues/813
-  if (!workflow.workDir.startsWith('s3:') || !params.outdir.startsWith('s3:')) exit 1, "Workdir or Outdir not on S3 - specify S3 Buckets for each to run on AWSBatch!"
-}
-
-/*
- * Create a channel for input files
- */ 
-
-//molecular trait data input data
-Channel.fromPath(params.studyFile)
-    .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
-    .splitCsv(header: true, sep: '\t', strip: true)
-    .map{row -> [ row.qtl_subset, file(row.count_matrix), file(row.pheno_meta), file(row.sample_meta)]}
-    .set { study_file_ch }
-
-// Separate channel for the VCF file
-Channel.fromPath(params.studyFile)
-    .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
-    .splitCsv(header: true, sep: '\t', strip: true)
-    .map{row -> [ row.qtl_subset, file(row.vcf) ]}
-    .set { vcf_file_ch }
-
-Channel.fromPath(params.studyFile)
-    .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
-    .splitCsv(header: true, sep: '\t', strip: true)
-    .map { row -> 
-        def tpm = row.containsKey('tpm_file') && row.tpm_file ? file(row.tpm_file) : null
-        def is_missing = (tpm == null) ? true : false
-
-        if (is_missing) {
-            def dummy_file = file("dummy_tpm.parquet")
-            dummy_file.text = ""  // Create an empty file
-            tpm = dummy_file
-        }
-
-        [ row.qtl_subset, tpm, is_missing ]
-    }
-    .set { tpm_file_ch }
-
-Channel.fromPath(params.rsid_map_file)
-    .ifEmpty { error "Cannot find rsid file in: ${params.rsid_map_file}" }
-    .splitCsv(header: true, sep: '\t', strip: true)
-    .map{row -> [ row.chr, file(row.rsid_file)]}
-    .set { chr_rsid_map_ch }
-
-// Batch channel
-batch_ch = Channel.of(1..params.n_batches)
-
-// Fetch the pipeline version from Git tags
-def pipelineVersion = "v0.0.0" // Default version in case git command fails
-
-// Try to fetch the version from Git
-try {
-    pipelineVersion = "git describe --tags".execute().text.trim()
-} catch (Exception e) {
-    log.warn "Could not retrieve the pipeline version from Git. Using default version $pipelineVersion."
-}
-
-// Header log info
-log.info """=======================================================
-                                          ,--./,-.
-          ___     __   __   __   ___     /,-._.--~\'
-    |\\ | |__  __ /  ` /  \\ |__) |__         }  {
-    | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
-                                          `._,._,\'
-
-eQTL-Catalogue/qtlmap ${pipelineVersion}"
-======================================================="""
-def summary = [:]
-summary['Pipeline Name']        = workflow.manifest.name
-summary['Pipeline Version']     = pipelineVersion
-summary['Run Name']             = custom_runName ?: workflow.runName
-summary['Study file']           = params.studyFile
-summary['cis window']           = params.cis_window
-summary['Min # cis variants']   = params.mincisvariant
-summary['VCF has R2 field']     = params.vcf_has_R2_field
-summary['Permutation run']      = params.run_permutation
-summary['# of permutations']    = params.n_permutations
-summary['Nominal run']          = params.run_nominal
-summary['# of batches']         = params.n_batches
-summary['# of phenotype PCs']   = params.n_pheno_pcs
-summary['# of genotype PCs']    = params.n_geno_pcs
-summary['Additonal covariates'] = params.covariates
-summary["Run SuSiE"]            = params.run_susie
-summary["Write full SuSiE"]     = params.write_full_susie
-summary["VCF genotype field"]   = params.vcf_genotype_field
-summary['Max Memory']           = params.max_memory
-summary['Max CPUs']             = params.max_cpus
-summary['Max Time']             = params.max_time
-summary['Output dir']           = params.outdir
-summary['Working dir']          = workflow.workDir
-summary['Container Engine']     = workflow.containerEngine
-summary['Current home']         = "$HOME"
-summary['Current user']         = "$USER"
-summary['Current path']         = "$PWD"
-summary['Working dir']          = workflow.workDir
-summary['Output dir']           = params.outdir
-summary['Script dir']           = workflow.projectDir
-summary['Config Profile']       = workflow.profile
-if(workflow.profile == 'awsbatch'){
-   summary['AWS Region']        = params.awsregion
-   summary['AWS Queue']         = params.awsqueue
-}
-if(params.email) summary['E-mail Address'] = params.email
-log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
-log.info "========================================="
 
 include { vcf_set_variant_ids } from './modules/vcf_set_variant_ids'
 include { extract_variant_info } from './modules/extract_variant_info'
@@ -216,6 +93,136 @@ include { extract_unique_molecular_trait_id; extract_lead_cc_signal } from './mo
 
 
 workflow {
+  print(params.studyFile)
+
+
+  // Show help emssage
+  if (params.help){
+      helpMessage()
+      exit 0
+  }
+
+  // Has the run name been specified by the user?
+  //  this has the bonus effect of catching both -name and --name
+  custom_runName = params.name
+  if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
+    custom_runName = workflow.runName
+  }
+
+  if( workflow.profile == 'awsbatch') {
+    // AWSBatch sanity checking
+    if (!params.awsqueue || !params.awsregion) exit 1, "Specify correct --awsqueue and --awsregion parameters on AWSBatch!"
+    if (!workflow.workDir.startsWith('s3') || !params.outdir.startsWith('s3')) exit 1, "Specify S3 URLs for workDir and outdir parameters on AWSBatch!"
+    // Check workDir/outdir paths to be S3 buckets if running on AWSBatch
+    // related: https://github.com/nextflow-io/nextflow/issues/813
+    if (!workflow.workDir.startsWith('s3:') || !params.outdir.startsWith('s3:')) exit 1, "Workdir or Outdir not on S3 - specify S3 Buckets for each to run on AWSBatch!"
+  }
+
+  /*
+  * Create a channel for input files
+  */ 
+
+
+
+  //molecular trait data input data
+  Channel.fromPath(params.studyFile)
+      .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
+      .splitCsv(header: true, sep: '\t', strip: true)
+      .map{row -> [ row.qtl_subset, file(row.count_matrix), file(row.pheno_meta), file(row.sample_meta)]}
+      .set { study_file_ch }
+
+  // Separate channel for the VCF file
+  Channel.fromPath(params.studyFile)
+      .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
+      .splitCsv(header: true, sep: '\t', strip: true)
+      .map{row -> [ row.qtl_subset, file(row.vcf) ]}
+      .set { vcf_file_ch }
+
+  Channel.fromPath(params.studyFile)
+      .ifEmpty { error "Cannot find studyFile file in: ${params.studyFile}" }
+      .splitCsv(header: true, sep: '\t', strip: true)
+      .map { row -> 
+          def tpm = row.containsKey('tpm_file') && row.tpm_file ? file(row.tpm_file) : null
+          def is_missing = (tpm == null) ? true : false
+
+          if (is_missing) {
+              def dummy_file = file("dummy_tpm.parquet")
+              dummy_file.text = ""  // Create an empty file
+              tpm = dummy_file
+          }
+
+          [ row.qtl_subset, tpm, is_missing ]
+      }
+      .set { tpm_file_ch }
+
+  Channel.fromPath(params.rsid_map_file)
+      .ifEmpty { error "Cannot find rsid file in: ${params.rsid_map_file}" }
+      .splitCsv(header: true, sep: '\t', strip: true)
+      .map{row -> [ row.chr, file(row.rsid_file)]}
+      .set { chr_rsid_map_ch }
+
+  // Batch channel
+  batch_ch = Channel.of(1..params.n_batches)
+
+  // Fetch the pipeline version from Git tags
+  def pipelineVersion = "v0.0.0" // Default version in case git command fails
+
+  // Try to fetch the version from Git
+  try {
+      pipelineVersion = "git describe --tags".execute().text.trim()
+  } catch (Exception e) {
+      log.warn "Could not retrieve the pipeline version from Git. Using default version $pipelineVersion."
+  }
+
+  // Header log info
+  log.info """=======================================================
+                                            ,--./,-.
+            ___     __   __   __   ___     /,-._.--~\'
+      |\\ | |__  __ /  ` /  \\ |__) |__         }  {
+      | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
+                                            `._,._,\'
+
+  eQTL-Catalogue/qtlmap ${pipelineVersion}"
+  ======================================================="""
+  def summary = [:]
+  summary['Pipeline Name']        = workflow.manifest.name
+  summary['Pipeline Version']     = pipelineVersion
+  summary['Run Name']             = custom_runName ?: workflow.runName
+  summary['Study file']           = params.studyFile
+  summary['cis window']           = params.cis_window
+  summary['Min # cis variants']   = params.mincisvariant
+  summary['VCF has R2 field']     = params.vcf_has_R2_field
+  summary['Permutation run']      = params.run_permutation
+  summary['# of permutations']    = params.n_permutations
+  summary['Nominal run']          = params.run_nominal
+  summary['# of batches']         = params.n_batches
+  summary['# of phenotype PCs']   = params.n_pheno_pcs
+  summary['# of genotype PCs']    = params.n_geno_pcs
+  summary['Additonal covariates'] = params.covariates
+  summary["Run SuSiE"]            = params.run_susie
+  summary["Write full SuSiE"]     = params.write_full_susie
+  summary["VCF genotype field"]   = params.vcf_genotype_field
+  summary['Max Memory']           = params.max_memory
+  summary['Max CPUs']             = params.max_cpus
+  summary['Max Time']             = params.max_time
+  summary['Output dir']           = params.outdir
+  summary['Working dir']          = workflow.workDir
+  summary['Container Engine']     = workflow.containerEngine
+  summary['Current home']         = "$HOME"
+  summary['Current user']         = "$USER"
+  summary['Current path']         = "$PWD"
+  summary['Working dir']          = workflow.workDir
+  summary['Output dir']           = params.outdir
+  summary['Script dir']           = workflow.projectDir
+  summary['Config Profile']       = workflow.profile
+  if(workflow.profile == 'awsbatch'){
+    summary['AWS Region']        = params.awsregion
+    summary['AWS Queue']         = params.awsqueue
+  }
+  if(params.email) summary['E-mail Address'] = params.email
+  log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
+  log.info "========================================="
+
 
     // Prepare input data for QTL mapping
     if( params.vcf_set_variant_ids ){

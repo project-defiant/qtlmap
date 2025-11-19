@@ -6,18 +6,22 @@ import time
 
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('-v', help='The variant info file, extracted from vcf', required=True)
-argparser.add_argument('-r', help='The variant_id rsid map file', required=True)
-argparser.add_argument('-s', help='The summary_statistics file (nominal run output)', required=True)
-argparser.add_argument('-p', help='The phenotype metadata file', required=True)
-argparser.add_argument('-m', help='The median_tpm file', required=False, default=None)
-argparser.add_argument('-o', help='The output file name', required=True)
-argparser.add_argument('-a', help='Starting position', required=True,type=int)
-argparser.add_argument('-b', help='Ending position', required=True,type=int)
-argparser.add_argument('-t', help='tpm_missing', required=True,type=int)
-argparser.add_argument('-e',required=True, type=str, help="Memory limit in GB for DuckDB.")
-
-
+argparser.add_argument(
+    "-v", help="The variant info file, extracted from vcf", required=True
+)
+argparser.add_argument("-r", help="The variant_id rsid map file", required=True)
+argparser.add_argument(
+    "-s", help="The summary_statistics file (nominal run output)", required=True
+)
+argparser.add_argument("-p", help="The phenotype metadata file", required=True)
+argparser.add_argument("-m", help="The median_tpm file", required=False, default=None)
+argparser.add_argument("-o", help="The output file name", required=True)
+argparser.add_argument("-a", help="Starting position", required=True, type=int)
+argparser.add_argument("-b", help="Ending position", required=True, type=int)
+argparser.add_argument("-t", help="tpm_missing", required=True, type=int)
+argparser.add_argument(
+    "-e", required=True, type=str, help="Memory limit in GB for DuckDB."
+)
 
 
 args = argparser.parse_args()
@@ -34,15 +38,13 @@ tpm_file_missing = args.t
 memory_limit = args.e
 
 
-
-
 def main(memory_limit):
     memory_limit = f"{float(memory_limit) * 0.8:.1f}"
     start = time.time()
     con = duckdb.connect()
     if tpm_file_missing:
         median_tpm_query = ""
-        median_tpm_column = "NULL AS median_tpm" 
+        median_tpm_column = "NULL AS median_tpm"
     else:
         median_tpm_query = f"""
             LEFT JOIN (
@@ -106,10 +108,11 @@ def main(memory_limit):
                 FROM read_parquet('{phenotype_metadata}')
             ) AS pm ON nro.molecular_trait_id = pm.phenotype_id)
                 TO '{output_file}' (FORMAT 'parquet');
-        """)      
-    con.close()              
+        """)
+    con.close()
     end = time.time()
     print("Elapsed time:", end - start)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main(memory_limit)

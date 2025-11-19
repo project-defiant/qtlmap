@@ -3,7 +3,16 @@
 import duckdb
 import argparse
 
-def join_files(merged_susie_file, sumstat_batch_file, chrom, start_pos, end_pos, output_file,memory_limit):
+
+def join_files(
+    merged_susie_file,
+    sumstat_batch_file,
+    chrom,
+    start_pos,
+    end_pos,
+    output_file,
+    memory_limit,
+):
     con = duckdb.connect()
     memory_limit = f"{float(memory_limit) * 0.8:.1f}"
     query = f"""
@@ -41,21 +50,59 @@ def join_files(merged_susie_file, sumstat_batch_file, chrom, start_pos, end_pos,
             ON a.variant = b.variant AND a.molecular_trait_id = b.molecular_trait_id
         ) TO '{output_file}' (FORMAT 'parquet');
     """
-    
+
     con.execute(query)
     con.close()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Join filtered run_susie with nominal parquet files using DuckDB.")
-    parser.add_argument('-r', '--merged_susie_file', required=True, help="Path to the merged susie parquet file.")
-    parser.add_argument('-n', '--sumstat_btach_file', required=True, help="Path to the sumstat batch parquet file.")
-    parser.add_argument('-c', '--chrom', required=True, help="Chromosome number of the nominal file.")
-    parser.add_argument('-s', '--start_pos', required=True, type=int, help="Start position range of the nominal file.")
-    parser.add_argument('-e', '--end_pos', required=True, type=int, help="End position range of the nominal file.")
-    parser.add_argument('-o', '--output_file', required=True, help="Path to the output parquet file.")
-    parser.add_argument('-m', '--memory_limit', required=True, help="Memory limit in GB for DuckDB.")
 
-    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Join filtered run_susie with nominal parquet files using DuckDB."
+    )
+    parser.add_argument(
+        "-r",
+        "--merged_susie_file",
+        required=True,
+        help="Path to the merged susie parquet file.",
+    )
+    parser.add_argument(
+        "-n",
+        "--sumstat_btach_file",
+        required=True,
+        help="Path to the sumstat batch parquet file.",
+    )
+    parser.add_argument(
+        "-c", "--chrom", required=True, help="Chromosome number of the nominal file."
+    )
+    parser.add_argument(
+        "-s",
+        "--start_pos",
+        required=True,
+        type=int,
+        help="Start position range of the nominal file.",
+    )
+    parser.add_argument(
+        "-e",
+        "--end_pos",
+        required=True,
+        type=int,
+        help="End position range of the nominal file.",
+    )
+    parser.add_argument(
+        "-o", "--output_file", required=True, help="Path to the output parquet file."
+    )
+    parser.add_argument(
+        "-m", "--memory_limit", required=True, help="Memory limit in GB for DuckDB."
+    )
+
     args = parser.parse_args()
-    
-    join_files(args.merged_susie_file, args.sumstat_btach_file, args.chrom, args.start_pos, args.end_pos, args.output_file,args.memory_limit)
+
+    join_files(
+        args.merged_susie_file,
+        args.sumstat_btach_file,
+        args.chrom,
+        args.start_pos,
+        args.end_pos,
+        args.output_file,
+        args.memory_limit,
+    )

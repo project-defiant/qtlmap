@@ -2,14 +2,23 @@
 
 import duckdb
 import argparse
-import json 
+import json
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('-i', help='Input file', required=True)
-argparser.add_argument('-c', '--columns', required=True, help="List of file columns.")
-argparser.add_argument('-o', help='The output pq file name', required=True)
-argparser.add_argument('-m', required=True, type=str, help="Memory limit in GB for DuckDB.")
-argparser.add_argument('-s', '--schema', help='Query ending as json dict of column types',type=str,default="", required=False)
+argparser.add_argument("-i", help="Input file", required=True)
+argparser.add_argument("-c", "--columns", required=True, help="List of file columns.")
+argparser.add_argument("-o", help="The output pq file name", required=True)
+argparser.add_argument(
+    "-m", required=True, type=str, help="Memory limit in GB for DuckDB."
+)
+argparser.add_argument(
+    "-s",
+    "--schema",
+    help="Query ending as json dict of column types",
+    type=str,
+    default="",
+    required=False,
+)
 
 args = argparser.parse_args()
 
