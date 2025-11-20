@@ -106,7 +106,7 @@ option_list <- list(
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
 #Debugging
-if (FALSE) {
+if (TRUE) {
   opt = list(
     phenotype_list = "testdata/susie_debug/GEUVADIS_test_ge.permuted.tsv.gz",
     cisdistance = 500000,
@@ -246,7 +246,7 @@ finemapPhenotype <- function(
   #Standardise genotypes
   gt_std = t(gt_matrix - apply(gt_matrix, 1, mean))
   gt_hat = hat %*% gt_std
-
+  browser()
   # Fit finemapping model
   fitted <- susieR::susie(
     gt_hat,
@@ -483,26 +483,27 @@ make_connected_components_from_cs <- function(
 
 
 #Import all files
-expression_matrix = readr::read_tsv(opt$expression_matrix)
-sample_metadata = utils::read.csv(
+expression_matrix <- readr::read_tsv(opt$expression_matrix)
+sample_metadata <- utils::read.csv(
   opt$sample_meta,
-  sep = '\t',
-  stringsAsFactors = F
+  sep = "\t",
+  stringsAsFactors = FALSE
 )
-phenotype_meta = utils::read.csv(
+phenotype_meta <- utils::read.csv(
   opt$phenotype_meta,
   sep = "\t",
-  stringsAsFactors = F
-)
-covariates_matrix = importQtlmapCovariates(opt$covariates)
+  stringsAsFactors = FALSE
+) %>%
+  tibble::as_tibble()
+covariates_matrix <- importQtlmapCovariates(opt$covariates)
 
 #Exclude covariates with zero variance
-exclude_cov = apply(covariates_matrix, 2, sd) != 0
-covariates_matrix = covariates_matrix[, exclude_cov]
+exclude_cov <- apply(covariates_matrix, 2, sd) != 0
+covariates_matrix <- covariates_matrix[, exclude_cov]
 
 #Import list of phenotypes for finemapping
-phenotype_table = importQtlmapPermutedPvalues(opt$phenotype_list)
-filtered_list = dplyr::filter(phenotype_table, p_fdr < 0.01, n_variants >= 5)
+phenotype_table <- importQtlmapPermutedPvalues(opt$phenotype_list)
+filtered_list <- dplyr::filter(phenotype_table, p_fdr < 0.01, n_variants >= 5)
 
 #Choose between finemapping all phenotypes with the same group_id or only the lead phenotype from the QTLtools permuted output.
 if (opt$finemap_by_group_id) {
@@ -521,18 +522,18 @@ if (opt$finemap_by_group_id) {
 message("Number of phenotypes included for analysis: ", nrow(phenotype_list))
 
 #Keep only those phenotypes that are present in the expression matrix
-phenotype_list = dplyr::filter(
+phenotype_list <- dplyr::filter(
   phenotype_list,
   phenotype_id %in% expression_matrix$phenotype_id
 )
 
 #Set parameters
-cis_distance = opt$cisdistance
-genotype_file = opt$genotype_matrix
-study_id = sample_metadata$study[1]
+cis_distance <- opt$cisdistance
+genotype_file <- opt$genotype_matrix
+study_id <- sample_metadata$study[1]
 
 #Make a SummarizedExperiment of the expression data
-se = eQTLUtils::makeSummarizedExperimentFromCountMatrix(
+se <- eQTLUtils::makeSummarizedExperimentFromCountMatrix(
   assay = expression_matrix,
   row_data = phenotype_meta,
   col_data = sample_metadata,
@@ -542,7 +543,7 @@ se = eQTLUtils::makeSummarizedExperimentFromCountMatrix(
 
 
 #Define empty data frames
-empty_variant_df = dplyr::tibble(
+empty_variant_df <- dplyr::tibble(
   molecular_trait_id = character(),
   variant = character(),
   chromosome = character(),
@@ -590,7 +591,7 @@ empty_variant_df = dplyr::tibble(
   mu2_10 = numeric()
 )
 
-empty_lbf_df = dplyr::tibble(
+empty_lbf_df <- dplyr::tibble(
   molecular_trait_id = character(),
   region = character(),
   variant = character(),
@@ -608,7 +609,7 @@ empty_lbf_df = dplyr::tibble(
   lbf_variable10 = numeric()
 )
 
-empty_cs_df = dplyr::tibble(
+empty_cs_df <- dplyr::tibble(
   molecular_trait_id = numeric(),
   cs_id = numeric(),
   cs_index = numeric(),
@@ -620,7 +621,7 @@ empty_cs_df = dplyr::tibble(
   low_purity = numeric()
 )
 
-empty_in_cs_variant_df = dplyr::tibble(
+empty_in_cs_variant_df <- dplyr::tibble(
   molecular_trait_id = character(),
   variant = character(),
   chromosome = character(),

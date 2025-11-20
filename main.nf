@@ -139,16 +139,12 @@ workflow {
     .map { row -> [row.qtl_subset, file("${baseDir}/${row.count_matrix}"), file("${baseDir}/${row.pheno_meta}"), file("${baseDir}/${row.sample_meta}")] }
     .set { study_file_ch }
 
-  view { study_file_ch }
-
   // Separate channel for the VCF file
   channel.fromPath(params.studyFile)
     .ifEmpty { error("Cannot find studyFile file in: ${params.studyFile}") }
     .splitCsv(header: true, sep: '\t', strip: true)
     .map { row -> [row.qtl_subset, file("${baseDir}/${row.vcf}")] }
     .set { vcf_file_ch }
-
-  view { vcf_file_ch }
 
   channel.fromPath(params.studyFile)
     .ifEmpty { error("Cannot find studyFile file in: ${params.studyFile}") }
@@ -168,15 +164,11 @@ workflow {
     }
     .set { tpm_file_ch }
 
-  view { tpm_file_ch }
-
   channel.fromPath(params.rsid_map_file)
     .ifEmpty { error("Cannot find rsid file in: ${params.rsid_map_file}") }
     .splitCsv(header: true, sep: '\t', strip: true)
     .map { row -> [row.chr, file("${baseDir}/${row.rsid_file}")] }
     .set { chr_rsid_map_ch }
-
-  view { chr_rsid_map_ch }
 
   // Batch channel
   batch_ch = channel.of(1..params.n_batches)
@@ -236,7 +228,6 @@ workflow {
   }
   log.info(summary.collect { k, v -> "${k.padRight(21)}: ${v}" }.join("\n"))
   log.info("=========================================")
-  view { study_file_ch }
 
   // Prepare input data for QTL mapping
   if (params.vcf_set_variant_ids) {
@@ -315,6 +306,7 @@ workflow {
       .join(merge_permutation_batches.out)
       .join(make_pca_covariates.out)
       .join(vcf_to_dosage.out)
+      .view { "susie_ch: ${it}" }
     run_susie(susie_ch, batch_ch)
   }
   if (params.run_permutation & params.run_susie & params.run_nominal) {
